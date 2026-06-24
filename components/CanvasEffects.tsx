@@ -25,12 +25,44 @@ export function CanvasEffects({ effect }: CanvasEffectsProps) {
     };
     window.addEventListener('resize', handleResize);
 
-    const particles: any[] = [];
+    interface SnowParticle {
+      x: number;
+      y: number;
+      r: number;
+      d: number;
+      swing: number;
+      swingSpeed: number;
+    }
+
+    interface ConfettiParticle {
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      color: string;
+      vx: number;
+      vy: number;
+      rotation: number;
+      rotationSpeed: number;
+    }
+
+    interface BubbleParticle {
+      x: number;
+      y: number;
+      r: number;
+      speed: number;
+      wobble: number;
+      wobbleSpeed: number;
+    }
+
+    const snowParticles: SnowParticle[] = [];
+    const confettiParticles: ConfettiParticle[] = [];
+    const bubbleParticles: BubbleParticle[] = [];
 
     // เริ่มต้นตัวแปรพาร์ติเคิลตามเอฟเฟกต์ที่เลือก
     if (effect === 'snow') {
       for (let i = 0; i < 70; i++) {
-        particles.push({
+        snowParticles.push({
           x: Math.random() * width,
           y: Math.random() * height,
           r: Math.random() * 3 + 1,
@@ -46,7 +78,7 @@ export function CanvasEffects({ effect }: CanvasEffectsProps) {
         '#f59e0b', '#ef4444'
       ];
       for (let i = 0; i < 80; i++) {
-        particles.push({
+        confettiParticles.push({
           x: Math.random() * width,
           y: Math.random() * height - height,
           w: Math.random() * 6 + 5,
@@ -60,7 +92,7 @@ export function CanvasEffects({ effect }: CanvasEffectsProps) {
       }
     } else if (effect === 'bubbles') {
       for (let i = 0; i < 30; i++) {
-        particles.push({
+        bubbleParticles.push({
           x: Math.random() * width,
           y: height + Math.random() * 100,
           r: Math.random() * 12 + 4,
@@ -76,7 +108,7 @@ export function CanvasEffects({ effect }: CanvasEffectsProps) {
 
       if (effect === 'snow') {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        particles.forEach(p => {
+        snowParticles.forEach(p => {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
           ctx.fill();
@@ -92,7 +124,7 @@ export function CanvasEffects({ effect }: CanvasEffectsProps) {
           }
         });
       } else if (effect === 'confetti') {
-        particles.forEach(p => {
+        confettiParticles.forEach(p => {
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate((p.rotation * Math.PI) / 180);
@@ -114,7 +146,7 @@ export function CanvasEffects({ effect }: CanvasEffectsProps) {
         ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
         ctx.fillStyle = 'rgba(6, 182, 212, 0.03)';
         ctx.lineWidth = 1.2;
-        particles.forEach(p => {
+        bubbleParticles.forEach(p => {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
           ctx.fill();

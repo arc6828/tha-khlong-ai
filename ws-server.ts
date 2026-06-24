@@ -78,7 +78,7 @@ wss.on('connection', (ws) => {
   ws.on('error', console.error);
 });
 
-// 3. วงรอบนับถอยหลังคิวในฝั่งเซิร์ฟเวอร์ (Background Queue Tic - ทำงานทุกๆ 1 วินาที)
+// 3. วงรอบนับถอยหลังคิวในฝั่งเซิร์ฟเวอร์ (Background Queue Tic - ทำงานทุกๆ 5 วินาที)
 setInterval(async () => {
   try {
     // ฐานข้อมูล SQLite จะถูกซิงก์โดยตรง
@@ -96,7 +96,7 @@ setInterval(async () => {
   } catch (err) {
     console.error('Error in background queue tick process:', err);
   }
-}, 1000);
+}, 5000);
 
 server.listen(port, () => {
   console.log(`WebSocket Companion Server running at http://localhost:${port}`);

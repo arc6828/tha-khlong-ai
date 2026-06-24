@@ -43,13 +43,26 @@ export interface Requirement {
   isCompiling: boolean;  // สถานะคอมไพล์เดี่ยวของกระดานนี้
   startedAt: number | null; // เวลาเริ่มต้นสร้าง
   createdAt: number;     // เวลาที่สร้างสำหรับคิว FIFO
-  drawActions: any[]; // ส่งกลับอาเรย์ว่างเปล่าเพื่อความเข้ากันได้กับหน้าเว็บ
+  drawActions: unknown[]; // ส่งกลับอาเรย์ว่างเปล่าเพื่อความเข้ากันได้กับหน้าเว็บ
 }
 
 export interface AppState {
   requirements: Requirement[]; // ลิสต์ของ Canvas ทั้งหมด
   acceptingSubmissions: boolean;
   geminiApiKey: string; // ส่งค่าว่างกลับเพื่อความเข้ากันได้
+}
+
+export interface CanvasRow {
+  id: string;
+  text: string;
+  author: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  theme: string | null;
+  effect: string | null;
+  generatedSvg: string | null;
+  isCompiling: number;
+  startedAt: number | null;
+  createdAt: number | null;
 }
 
 const DB_FILE = path.join(process.cwd(), 'tha_khlong.db');
@@ -79,7 +92,7 @@ db.exec(`
 
 try {
   db.exec('ALTER TABLE canvases ADD COLUMN createdAt INTEGER');
-} catch (e) {
+} catch {
   // ละเว้นหากคอลัมน์มีอยู่แล้ว
 }
 
@@ -116,7 +129,7 @@ export function readState(): AppState {
     const acceptingSubmissions = settings['acceptingSubmissions'] !== 'false';
 
     // อ่านรายการกระดานแคนวาสทั้งหมด เรียงลำดับตามเวลาสร้างเพื่อความถูกต้องของคิว FIFO
-    const canvasesRows = db.prepare('SELECT * FROM canvases ORDER BY createdAt ASC').all() as any[];
+    const canvasesRows = db.prepare('SELECT * FROM canvases ORDER BY createdAt ASC').all() as CanvasRow[];
     const requirements = canvasesRows.map(row => ({
       id: row.id,
       text: row.text,
@@ -335,12 +348,20 @@ export function matchRequirementKeywords(text: string) {
   return { theme, effect, stamps };
 }
 
+async function notifyWsServer() {
+  try {
+    await fetch('http://localhost:3001/notify');
+  } catch (err) {
+    console.error('Failed to notify WebSocket server from db:', err);
+  }
+}
+
 // อัปเดตคิวประมวลผลกระดานตามลำดับก่อนหลัง (FIFO Queue Scheduler)
 export async function updateQueueStatus(): Promise<AppState> {
   const now = Date.now();
 
   // 1. ค้นหาว่ามีบอร์ดใดกำลังประมวลผลอยู่ (processing) หรือไม่
-  const active = db.prepare("SELECT * FROM canvases WHERE status = 'processing' LIMIT 1").get() as any;
+  const active = db.prepare("SELECT * FROM canvases WHERE status = 'processing' LIMIT 1").get() as CanvasRow | undefined;
 
   if (active) {
     if (active.isCompiling === 0) {
@@ -348,15 +369,15 @@ export async function updateQueueStatus(): Promise<AppState> {
     }
   } else {
     // 2. ไม่มีกระดานกำลังประมวลผลอยู่ ดึงอันรอคิว (pending) แรกสุดขึ้นมาทำตามลำดับ FIFO
-    const nextPending = db.prepare("SELECT * FROM canvases WHERE status = 'pending' ORDER BY createdAt ASC LIMIT 1").get() as any;
+    const nextPending = db.prepare("SELECT * FROM canvases WHERE status = 'pending' ORDER BY createdAt ASC LIMIT 1").get() as CanvasRow | undefined;
     if (nextPending) {
       db.prepare("UPDATE canvases SET status = 'processing', startedAt = ?, isCompiling = 1 WHERE id = ?").run(now, nextPending.id);
 
       // เรียกใช้งาน AI เจนเนอเรตภาพเฉพาะแคนวาสบอร์ดนี้ (และอัปเดตเป็น completed หรือ failed ทันทีที่ทำงานเสร็จ)
-      await generateCanvasSvg(nextPending.id);
-
-      // ค้นหาและเริ่มโปรเซสคิวบอร์ดถัดไปในทันที (Recursive Call)
-      return await updateQueueStatus();
+      // รันแบบ background task โดยไม่ await เพื่อหลีกเลี่ยงการบล็อก Event Loop และ WebSocket Notification
+      generateCanvasSvg(nextPending.id).catch((err) => {
+        console.error('Error in generateCanvasSvg background task:', err);
+      });
     }
   }
 
@@ -365,7 +386,7 @@ export async function updateQueueStatus(): Promise<AppState> {
 
 // ฟังก์ชันเรียกเจนเนอเรต SVG ของ Canvas นั้นๆ โดยแยก Prompt อิสระเดี่ยวๆ ไม่รวมกัน
 export async function generateCanvasSvg(canvasId: string): Promise<void> {
-  const canvas = db.prepare("SELECT * FROM canvases WHERE id = ?").get(canvasId) as any;
+  const canvas = db.prepare("SELECT * FROM canvases WHERE id = ?").get(canvasId) as CanvasRow | undefined;
   if (!canvas) return;
 
   // นโยบายความปลอดภัยคีย์ API: ดึงตรงจาก process.env เท่านั้น ห้ามกรอกผ่านบอร์ดเว็บหรือเก็บลง DB
@@ -398,6 +419,9 @@ export async function generateCanvasSvg(canvasId: string): Promise<void> {
     SET theme = ?, effect = ?, generatedSvg = ?, status = ?, isCompiling = 0
     WHERE id = ?
   `).run(match.theme, match.effect, generatedSvg, status, canvasId);
+
+  // แจ้งเตือน WebSocket Server ทันทีหลังจากเขียนสถานะลงฐานข้อมูลเสร็จสิ้น
+  await notifyWsServer();
 }
 
 // ฟังก์ชันช่วยเหลือในการเขียนบันทึกฐานข้อมูลแบบตรงจุด (Targeted Database Operations) เพื่อแก้ปัญหาการแย่งกันเขียนทับของโปรเซส

@@ -157,8 +157,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: 'ไม่พบคำสั่งทำงาน' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

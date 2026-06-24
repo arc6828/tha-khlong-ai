@@ -15,7 +15,7 @@ interface Requirement {
   isCompiling: boolean;
   startedAt: number | null;
   createdAt: number;
-  drawActions: any[];
+  drawActions: unknown[];
 }
 
 interface AppState {
@@ -24,78 +24,7 @@ interface AppState {
   geminiApiKey: string;
 }
 
-const CODE_TEMPLATES: Record<string, string> = {
-  space: `// NEXT.JS Live-reloading Cosmic Space Component
-import React, { useEffect } from 'react';
-import { SpaceEngine } from 'google-gemini-ai';
 
-export default function SpaceGalaxy() {
-  useEffect(() => {
-    const space = new SpaceEngine({
-      target: '#space-canvas',
-      stars: 500,
-      glow: 'radial-pulse'
-    });
-    space.init();
-    return () => space.destroy();
-  }, []);
-
-  return (
-    <div className="absolute inset-0 bg-[#020210]">
-      <canvas id="space-canvas" className="w-full h-full opacity-70" />
-    </div>
-  );
-}`,
-  pink: `// SWEET PASTEL PRINCESS COMPONENT
-import React from 'react';
-
-export default function SweetPinkTheme() {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-pink-100">
-      <div className="p-8 bg-white/40 backdrop-blur-md rounded-2xl border border-pink-200">
-        <h1 className="text-pink-600 animate-bounce font-bold text-4xl">
-          🌸 พาสเทลชมพูแสนหวานทำงานแล้ว! 💕
-        </h1>
-      </div>
-    </div>
-  );
-}`,
-  matrix: `// GREEN MATRIX DIGITAL RAIN COMPONENT
-import React, { useEffect, useRef } from 'react';
-
-export function MatrixRain() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    // Rendering matrix digital rain logic...
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
-}`,
-  neon: `// NEON CYBERPUNK NEON MODULE
-import React from 'react';
-
-export function CyberpunkNeon() {
-  return (
-    <div className="neon-grid min-h-screen flex flex-col justify-center items-center bg-[#050010]">
-      <h2 className="font-bold text-3xl text-shadow-neon text-[#00f0ff]">
-        CYBERPUNK NEON ACTIVATED
-      </h2>
-    </div>
-  );
-}`,
-  generic: `// BUNDLING REACT COMPONENTS...
-// COMPILED SUCCESSFULLY
-// HOT RELOAD INJECTED TO CLIENTS
-import { PageRouter } from 'next';
-export default function Page() {
-  return (
-    <div className="min-h-screen text-white bg-zinc-950">
-      <h1>Tha Khlong AI Experimental Lab</h1>
-    </div>
-  );
-}`
-};
 
 export default function Home() {
   const [state, setState] = useState<AppState | null>(null);
@@ -103,7 +32,7 @@ export default function Home() {
   const [newReqText, setNewReqText] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   // สเตตกระดานแคนวาสที่เลือกชมขนาดใหญ่ (Lightbox Mode)
   const [activeCanvasId, setActiveCanvasId] = useState<string | null>(null);
@@ -184,9 +113,11 @@ export default function Home() {
 
   // โหลดชื่อของเด็กจาก localStorage ในการใช้งานครั้งแรก
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedName = localStorage.getItem('student_name') || '';
-      setName(storedName);
+    const storedName = localStorage.getItem('student_name');
+    if (storedName) {
+      setTimeout(() => {
+        setName(storedName);
+      }, 0);
     }
   }, []);
 
@@ -194,7 +125,7 @@ export default function Home() {
   const playSynthSound = (type: string) => {
     if (typeof window === 'undefined') return;
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioContextClass();
       const nowNode = ctx.currentTime;
 
@@ -334,20 +265,7 @@ export default function Home() {
   // หากระดานที่กำลังเปิดพรีวิวขนาดใหญ่
   const activeCanvas = state.requirements.find(c => c.id === activeCanvasId);
 
-  // กำหนดคีย์เวิร์ดสำหรับพิมพ์โค้ดจำลองความก้าวหน้า
-  let activeCodeTemplate = CODE_TEMPLATES.generic;
-  if (activeCanvas) {
-    const text = activeCanvas.text.toLowerCase();
-    if (text.includes('อวกาศ') || text.includes('space') || text.includes('ดาว')) {
-      activeCodeTemplate = CODE_TEMPLATES.space;
-    } else if (text.includes('ชมพู') || text.includes('pink') || text.includes('น่ารัก')) {
-      activeCodeTemplate = CODE_TEMPLATES.pink;
-    } else if (text.includes('แฮกเกอร์') || text.includes('matrix')) {
-      activeCodeTemplate = CODE_TEMPLATES.matrix;
-    } else if (text.includes('นีออน') || text.includes('cyber') || text.includes('ไซเบอร์')) {
-      activeCodeTemplate = CODE_TEMPLATES.neon;
-    }
-  }
+
 
   // ปรับเอฟเฟกต์ตามกระดานที่เปิดใช้งาน
   let currentEffect: 'none' | 'confetti' | 'snow' | 'bubbles' = 'none';
@@ -455,7 +373,7 @@ export default function Home() {
                     >
                       <span className="truncate font-medium">
                         {req.status === 'processing' ? '🟢 กำลังวาด: ' : `⏳ คิวที่ #${idx + 1}: `}
-                        "{req.text}"
+                        &quot;{req.text}&quot;
                       </span>
                       <span className="shrink-0 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-zinc-500">
                         {req.author}
@@ -538,7 +456,7 @@ export default function Home() {
                           ลำดับคิวในห้องเรียน: #{state.requirements.filter(r => r.status === 'pending').findIndex(r => r.id === req.id) + 1}
                         </span>
                         <span className="text-[8px] text-zinc-500 max-w-[180px] truncate">
-                          "{req.text}"
+                          &quot;{req.text}&quot;
                         </span>
                       </div>
                     )}
@@ -552,7 +470,7 @@ export default function Home() {
                           Gemini API Error
                         </span>
                         <span className="text-[8px] text-zinc-300 max-w-[180px] truncate mb-2">
-                          "{req.text}"
+                          &quot;{req.text}&quot;
                         </span>
                         <button
                           onClick={(e) => {
@@ -605,7 +523,7 @@ export default function Home() {
                     <div>
                       <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">ภาพวาดโดย AI</div>
                       <h3 className="text-xs font-bold text-white truncate mt-0.5">
-                        "{req.text}"
+                        &quot;{req.text}&quot;
                       </h3>
                     </div>
 
@@ -635,7 +553,7 @@ export default function Home() {
             <div>
               <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">กำลังเปิดชมผลงานศิลปะ AI</div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <span>🎨 "{activeCanvas.text}"</span>
+                <span>🎨 &quot;{activeCanvas.text}&quot;</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   ผู้ออกแบบ: {activeCanvas.author}
                 </span>
