@@ -1,26 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0b0f19;
+  --foreground: #f3f4f6;
+  --font-thai: 'Chakra Petch', sans-serif;
+  --font-english: 'Outfit', sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-thai), var(--font-english), system-ui, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* ==========================================================================
+   ธีมพิเศษต่างๆ (Special Visual Themes)
+   ========================================================================== */
+
+/* 1. Space Theme */
+.theme-space {
+  background: radial-gradient(circle at 50% 50%, #111827, #030712, #000000) !important;
+  color: #e5e7eb !important;
+  position: relative;
+}
+.theme-space::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+    radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+    radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px);
+  background-size: 550px 550px, 350px 350px, 250px 250px;
+  background-position: 0 0, 40px 60px, 130px 270px;
+  opacity: 0.4;
+  animation: spaceStarMove 120s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 2. Sweet Pink Theme */
+.theme-pink {
+  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 50%, #f472b6 100%) !important;
+  color: #831843 !important;
+}
+
+/* 3. Matrix Rain Theme */
+.theme-matrix {
+  background: #000000 !important;
+  color: #38bdf8 !important; /* fallback */
+  font-family: 'Courier New', Courier, monospace !important;
+}
+.theme-matrix-green-text {
+  color: #22c55e !important;
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+}
+.theme-matrix::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(0deg, rgba(16, 185, 129, 0.08) 50%, rgba(0, 0, 0, 0) 50%),
+              linear-gradient(90deg, rgba(16, 185, 129, 0.08) 50%, rgba(0, 0, 0, 0) 50%);
+  background-size: 4px 4px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 4. Cyberpunk Neon Theme */
+.theme-neon {
+  background: linear-gradient(180deg, #090514 0%, #0d0b21 100%) !important;
+  color: #00f0ff !important;
+}
+.theme-neon-border {
+  box-shadow: 0 0 15px rgba(255, 0, 128, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.2);
+  border: 1px solid #ff007f !important;
+}
+.theme-neon-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+}
+
+/* ==========================================================================
+   อนิเมชั่นและการเคลื่อนไหว (Animations Keyframes)
+   ========================================================================== */
+
+@keyframes spaceStarMove {
+  from { background-position: 0 0, 40px 60px, 130px 270px; }
+  to { background-position: 550px 1100px, 700px 700px, 1000px 270px; }
+}
+
+/* เอฟเฟกต์สแกนเส้นเลเซอร์สีเขียวหน้าจอ AI */
+.scanner-line {
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #22c55e, transparent);
+  box-shadow: 0 0 12px #22c55e;
+  position: absolute;
+  left: 0;
+  animation: scanMove 4s ease-in-out infinite;
+}
+
+@keyframes scanMove {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+/* อนิเมชั่นดึ๋งๆ ของปุ่มลูกกวาดในด่านเกม */
+.game-candy-bounce {
+  animation: candyFloat 2s ease-in-out infinite alternate;
+}
+
+@keyframes candyFloat {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-10px) scale(1.05); }
+  100% { transform: translateY(0px) scale(1); }
+}
+
+/* สไตล์การพิมพ์โค้ดจำลองในกล่องคอนโซล */
+.code-typing-text {
+  font-family: var(--font-mono), monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* เอฟเฟกต์เรืองแสงกระดุมโฮเวอร์ */
+.btn-neon-hover:hover {
+  filter: drop-shadow(0 0 8px var(--glow-color, #a855f7));
+}
+
+/* เอฟเฟกต์เมฆปุยสไตล์ Sweet Pink */
+.bubble-float {
+  animation: bubbleUp 6s linear infinite;
+}
+
+@keyframes bubbleUp {
+  0% {
+    transform: translateY(105vh) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-5vh) scale(1.2);
+    opacity: 0;
+  }
 }
