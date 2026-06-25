@@ -10,10 +10,11 @@ module.exports = {
       }
     },
     {
-      name: "tha-khlong-ws",
+      name: "tha-khlong-ws-3004",
       script: "npx",
       args: "tsx ws-server.ts",
       env: {
+        PORT: 3004,
         NODE_ENV: "production"
       }
     }
