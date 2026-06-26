@@ -414,7 +414,9 @@ export default function Home() {
             </div>
 
             {/* แสดงการ์ดผลงานของแต่ละบอร์ด */}
-            {state.requirements.map((req) => {
+            {[...state.requirements]
+              .sort((a, b) => b.createdAt - a.createdAt)
+              .map((req) => {
               // คำนวณเปอร์เซ็นต์สำหรับ Live compiler แบบการ์ดเดี่ยว
               let percent = 100;
               if (req.isCompiling && req.startedAt) {
