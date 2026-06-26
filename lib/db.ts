@@ -65,7 +65,11 @@ export interface CanvasRow {
   createdAt: number | null;
 }
 
-const DB_FILE = path.join(process.cwd(), 'tha_khlong.db');
+const DB_DIR = path.join(process.cwd(), 'database');
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+}
+const DB_FILE = path.join(DB_DIR, 'tha_khlong.db');
 const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL');
 
