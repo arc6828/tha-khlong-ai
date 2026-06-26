@@ -12,7 +12,8 @@ import {
 
 async function notifyWsServer() {
   try {
-    await fetch('http://localhost:3001/notify');
+    const wsPort = process.env.WS_PORT || '3004';
+    await fetch(`http://localhost:${wsPort}/notify`);
   } catch (err) {
     console.error('Failed to notify WebSocket server:', err);
   }

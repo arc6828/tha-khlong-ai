@@ -6,6 +6,7 @@ module.exports = {
       args: "start",
       env: {
         PORT: 3003,
+        WS_PORT: 3004,
         NODE_ENV: "production"
       }
     },

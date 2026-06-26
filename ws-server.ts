@@ -5,7 +5,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import { readState, updateQueueStatus } from './lib/db';
 
-const port = 3001;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3004;
 
 // 1. HTTP Server สำหรับรับสัญญาณ Notify ทริกเกอร์จาก Next.js REST API หลังบ้าน
 const server = http.createServer((req, res) => {
