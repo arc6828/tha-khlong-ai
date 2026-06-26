@@ -16,6 +16,7 @@ interface Requirement {
   startedAt: number | null;
   createdAt: number;
   drawActions: unknown[];
+  processingTime?: number;
 }
 
 interface AppState {
@@ -354,7 +355,7 @@ export default function Home() {
           <div className="p-6 rounded-3xl border border-zinc-850 bg-zinc-900/40 backdrop-blur-md text-white shadow-lg">
             <h3 className="text-sm font-bold mb-3 flex justify-between items-center">
               <span>📋 สถานะแถวคิววาดรูป</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
                 {state.requirements.filter(r => r.status === 'pending' || r.status === 'processing').length} คิวรอ
               </span>
             </h3>
@@ -365,7 +366,7 @@ export default function Home() {
                   .map((req, idx) => (
                     <div 
                       key={req.id} 
-                      className={`p-2 rounded-lg text-[10px] flex items-center justify-between gap-2 border ${
+                      className={`p-2 rounded-lg text-xs flex items-center justify-between gap-2 border ${
                         req.status === 'processing' 
                           ? 'bg-purple-950/40 border-purple-500/30 text-purple-300 animate-pulse' 
                           : 'bg-zinc-950/80 border-zinc-850 text-zinc-400'
@@ -375,7 +376,7 @@ export default function Home() {
                         {req.status === 'processing' ? '🟢 กำลังวาด: ' : `⏳ คิวที่ #${idx + 1}: `}
                         &quot;{req.text}&quot;
                       </span>
-                      <span className="shrink-0 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-zinc-500">
+                      <span className="shrink-0 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px] text-zinc-500">
                         {req.author}
                       </span>
                     </div>
@@ -521,17 +522,24 @@ export default function Home() {
                   {/* รายละเอียดด้านล่างของการ์ด */}
                   <div className="p-4 flex flex-col justify-between flex-1 gap-2.5">
                     <div>
-                      <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">ภาพวาดโดย AI</div>
-                      <h3 className="text-xs font-bold text-white truncate mt-0.5">
+                      <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">ภาพวาดโดย AI</div>
+                      <h3 className="text-sm font-bold text-white line-clamp-2 mt-1 min-h-[2.5rem]" title={req.text}>
                         &quot;{req.text}&quot;
                       </h3>
                     </div>
 
-                    <div className="flex justify-between items-center text-[9px] text-zinc-400 pt-2 border-t border-zinc-900">
+                    <div className="flex justify-between items-center text-xs text-zinc-400 pt-2 border-t border-zinc-900">
                       <span>โดย: <strong className="text-cyan-400">{req.author}</strong></span>
-                      <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded text-zinc-500 text-[8px] font-bold uppercase">
-                        {req.theme}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {req.processingTime && req.processingTime > 0 ? (
+                          <span className="text-[9px] text-zinc-600 font-mono" title={`เวลาประมวลผล AI: ${(req.processingTime / 1000).toFixed(1)} วินาที`}>
+                            {(req.processingTime / 1000).toFixed(1)}s
+                          </span>
+                        ) : null}
+                        <span className="bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded text-zinc-500 text-[9px] font-bold uppercase">
+                          {req.theme}
+                        </span>
+                      </div>
                     </div>
                   </div>
 

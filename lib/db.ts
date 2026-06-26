@@ -44,6 +44,7 @@ export interface Requirement {
   startedAt: number | null; // เวลาเริ่มต้นสร้าง
   createdAt: number;     // เวลาที่สร้างสำหรับคิว FIFO
   drawActions: unknown[]; // ส่งกลับอาเรย์ว่างเปล่าเพื่อความเข้ากันได้กับหน้าเว็บ
+  processingTime: number; // ระยะเวลาประมวลผล (มิลลิวินาที)
 }
 
 export interface AppState {
@@ -63,6 +64,7 @@ export interface CanvasRow {
   isCompiling: number;
   startedAt: number | null;
   createdAt: number | null;
+  processingTime: number | null; // ระยะเวลาประมวลผล (มิลลิวินาที)
 }
 
 const DB_DIR = path.join(process.cwd(), 'database');
@@ -70,6 +72,7 @@ if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
 }
 const DB_FILE = path.join(DB_DIR, 'tha_khlong.db');
+console.log(`[SQLite Init] Database absolute file path is: ${DB_FILE}`);
 const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL');
 
@@ -90,12 +93,19 @@ db.exec(`
     generatedSvg TEXT,
     isCompiling INTEGER DEFAULT 0,
     startedAt INTEGER,
-    createdAt INTEGER
+    createdAt INTEGER,
+    processingTime INTEGER DEFAULT 0
   );
 `);
 
 try {
   db.exec('ALTER TABLE canvases ADD COLUMN createdAt INTEGER');
+} catch {
+  // ละเว้นหากคอลัมน์มีอยู่แล้ว
+}
+
+try {
+  db.exec('ALTER TABLE canvases ADD COLUMN processingTime INTEGER DEFAULT 0');
 } catch {
   // ละเว้นหากคอลัมน์มีอยู่แล้ว
 }
@@ -146,7 +156,8 @@ export function readState(): AppState {
       isCompiling: row.isCompiling === 1,
       startedAt: row.startedAt,
       createdAt: row.createdAt || Date.now(),
-      drawActions: [] // ลบฟังก์ชันวาดเขียนทับออกหมดแล้ว ส่งกลับอาเรย์ว่างเปล่า
+      drawActions: [], // ลบฟังก์ชันวาดเขียนทับออกหมดแล้ว ส่งกลับอาเรย์ว่างเปล่า
+      processingTime: row.processingTime || 0
     }));
 
     return {
@@ -182,8 +193,8 @@ export function writeState(state: AppState): void {
 
     // 3. บันทึกหรืออัปเดตแคนวาสทั้งหมดลงฐานข้อมูลด้วย SQLite Transaction
     const stmtUpsertCanvas = db.prepare(`
-      INSERT OR REPLACE INTO canvases (id, text, author, status, theme, effect, generatedSvg, isCompiling, startedAt, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO canvases (id, text, author, status, theme, effect, generatedSvg, isCompiling, startedAt, createdAt, processingTime)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const tx = db.transaction((requirements: Requirement[]) => {
@@ -198,11 +209,12 @@ export function writeState(state: AppState): void {
           req.generatedSvg || '',
           req.isCompiling ? 1 : 0,
           req.startedAt,
-          req.createdAt || Date.now()
+          req.createdAt || Date.now(),
+          req.processingTime || 0
         );
       });
     });
-    
+
     tx(state.requirements);
   } catch (error) {
     console.error('Error writing state to SQLite:', error);
@@ -222,7 +234,7 @@ export function resetState(): AppState {
 
 export function getFallbackSvg(theme: string, promptText: string): string {
   const cleanPrompt = promptText.replace(/"/g, '&quot;');
-  
+
   if (theme === 'space') {
     return `<svg viewBox="0 0 800 600" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -257,7 +269,7 @@ export function getFallbackSvg(theme: string, promptText: string): string {
       <text x="400" y="550" font-family="sans-serif" font-size="14" fill="#64748b" text-anchor="middle">คำสั่ง: "${cleanPrompt}"</text>
     </svg>`;
   }
-  
+
   if (theme === 'pink') {
     return `<svg viewBox="0 0 800 600" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
       <rect width="800" height="600" fill="#fdf2f8"/>
@@ -396,12 +408,15 @@ export async function generateCanvasSvg(canvasId: string): Promise<void> {
 
   // นโยบายความปลอดภัยคีย์ API: ดึงตรงจาก process.env เท่านั้น ห้ามกรอกผ่านบอร์ดเว็บหรือเก็บลง DB
   const apiKey = process.env.GEMINI_API_KEY;
-  
+
   // วิเคราะห์หาธีมและเอฟเฟกต์ตามคีย์เวิร์ด
   const match = matchRequirementKeywords(canvas.text);
 
   let generatedSvg = '';
   let status: 'completed' | 'failed' = 'completed';
+
+  const startTime = Date.now(); // เริ่มจับเวลาการประมวลผลวาดภาพของ Gemini
+
   if (apiKey) {
     try {
       console.log(`Calling Gemini API for canvas ${canvasId} with prompt: "${canvas.text}"`);
@@ -418,12 +433,16 @@ export async function generateCanvasSvg(canvasId: string): Promise<void> {
     status = 'failed';
   }
 
+  const processingTime = Date.now() - startTime; // สรุปเวลาประมวลผล (มิลลิวินาที)
+
+  console.log({ "duration(ms)": processingTime, "end": Date.now(), "begin": startTime });
+
   // อัปเดตรูปภาพ ธีม และเปลี่ยนสถานะเป็น completed หรือ failed และปิด compiles ทันที
   db.prepare(`
     UPDATE canvases 
-    SET theme = ?, effect = ?, generatedSvg = ?, status = ?, isCompiling = 0
+    SET theme = ?, effect = ?, generatedSvg = ?, status = ?, isCompiling = 0, processingTime = ?
     WHERE id = ?
-  `).run(match.theme, match.effect, generatedSvg, status, canvasId);
+  `).run(match.theme, match.effect, generatedSvg, status, processingTime, canvasId);
 
   // แจ้งเตือน WebSocket Server ทันทีหลังจากเขียนสถานะลงฐานข้อมูลเสร็จสิ้น
   await notifyWsServer();
@@ -432,8 +451,8 @@ export async function generateCanvasSvg(canvasId: string): Promise<void> {
 // ฟังก์ชันช่วยเหลือในการเขียนบันทึกฐานข้อมูลแบบตรงจุด (Targeted Database Operations) เพื่อแก้ปัญหาการแย่งกันเขียนทับของโปรเซส
 export function addCanvas(canvas: Requirement) {
   db.prepare(`
-    INSERT INTO canvases (id, text, author, status, theme, effect, generatedSvg, isCompiling, startedAt, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO canvases (id, text, author, status, theme, effect, generatedSvg, isCompiling, startedAt, createdAt, processingTime)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     canvas.id,
     canvas.text,
@@ -444,7 +463,8 @@ export function addCanvas(canvas: Requirement) {
     canvas.generatedSvg,
     canvas.isCompiling ? 1 : 0,
     canvas.startedAt,
-    canvas.createdAt
+    canvas.createdAt,
+    canvas.processingTime || 0
   );
 }
 

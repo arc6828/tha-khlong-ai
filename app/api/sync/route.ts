@@ -54,7 +54,8 @@ export async function POST(request: Request) {
         isCompiling: false,
         startedAt: null,
         createdAt: Date.now(),
-        drawActions: []
+        drawActions: [],
+        processingTime: 0
       };
 
       addCanvas(newReq);
@@ -148,7 +149,8 @@ export async function POST(request: Request) {
             isCompiling: false,
             startedAt: null,
             createdAt: now + index,
-            drawActions: []
+            drawActions: [],
+            processingTime: 0
           });
         });
 
