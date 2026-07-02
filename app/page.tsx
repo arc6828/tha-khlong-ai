@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { CanvasEffects } from '@/components/CanvasEffects';
+import { AboutModal } from '@/components/AboutModal';
+import { OtherWorksModal } from '@/components/OtherWorksModal';
 
 interface Requirement {
   id: string;
@@ -33,6 +35,8 @@ export default function Home() {
   const [newReqText, setNewReqText] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [worksOpen, setWorksOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   // สเตตกระดานแคนวาสที่เลือกชมขนาดใหญ่ (Lightbox Mode)
@@ -292,6 +296,27 @@ export default function Home() {
             <p className="text-zinc-400 text-[11px] font-medium">คลังสะสมผลงานการออกแบบแคนวาส AI แยกบอร์ดอิสระของเด็ก ๆ ในห้องเรียน</p>
           </div>
         </div>
+
+        <nav className="flex items-center gap-3 text-xs font-bold text-zinc-400">
+          <button
+            onClick={() => {
+              setAboutOpen(true);
+              playSynthSound('stamp');
+            }}
+            className="hover:text-white transition-all duration-200 flex items-center gap-1.5 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-zinc-700/80 px-3.5 py-2 rounded-2xl shadow-sm hover:shadow-lg active:scale-95 cursor-pointer"
+          >
+            <span>ℹ️ เกี่ยวกับโปรเจกต์</span>
+          </button>
+          <button
+            onClick={() => {
+              setWorksOpen(true);
+              playSynthSound('stamp');
+            }}
+            className="hover:text-white transition-all duration-200 flex items-center gap-1.5 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-zinc-700/80 px-3.5 py-2 rounded-2xl shadow-sm hover:shadow-lg active:scale-95 cursor-pointer"
+          >
+            <span>💼 ผลงานอื่น ๆ</span>
+          </button>
+        </nav>
         
         <div className="flex items-center gap-2 bg-zinc-900/80 border border-zinc-800 px-3 py-1.5 rounded-full shadow-inner select-none">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
@@ -796,6 +821,22 @@ export default function Home() {
           Tha Khlong AI Art Gallery &copy; 2026. Powered by Google Gemini in Environment.
         </div>
       </footer>
+
+      {/* About & Other Works Lightbox Modals */}
+      <AboutModal
+        isOpen={aboutOpen}
+        onClose={() => {
+          setAboutOpen(false);
+          playSynthSound('clear');
+        }}
+      />
+      <OtherWorksModal
+        isOpen={worksOpen}
+        onClose={() => {
+          setWorksOpen(false);
+          playSynthSound('clear');
+        }}
+      />
     </div>
   );
 }
